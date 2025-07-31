@@ -605,7 +605,52 @@ EOF
 # 清理临时文件
 cleanup() {
     log_info "清理临时文件..."
-    rm -rf /tmp/3proxy-*
+    
+    # 添加超时机制的清理
+    cleanup_with_timeout() {
+        local timeout=30
+        local pid
+        
+        # 在后台执行删除
+        rm -rf /tmp/3proxy-* 2>/dev/null &
+        pid=$!
+        
+        # 等待完成或超时
+        local count=0
+        while kill -0 $pid 2>/dev/null && [ $count -lt $timeout ]; do
+            sleep 1
+            count=$((count + 1))
+            if [ $((count % 5)) -eq 0 ]; then
+                echo -n "."
+            fi
+        done
+        
+        # 如果超时，强制终止
+        if kill -0 $pid 2>/dev/null; then
+            log_warn "清理超时，强制终止清理进程"
+            kill -9 $pid 2>/dev/null
+            
+            # 使用find命令强制清理
+            find /tmp -maxdepth 1 -name "*3proxy*" -exec rm -rf {} + 2>/dev/null || true
+        fi
+        
+        echo
+    }
+    
+    # 检查是否有3proxy临时文件
+    if ls /tmp/3proxy-* >/dev/null 2>&1; then
+        log_info "发现临时文件，开始清理..."
+        cleanup_with_timeout
+        
+        # 验证清理结果
+        if ls /tmp/3proxy-* >/dev/null 2>&1; then
+            log_warn "部分临时文件可能未能清理完成，但不影响使用"
+        else
+            log_info "临时文件清理完成"
+        fi
+    else
+        log_info "没有发现需要清理的临时文件"
+    fi
 }
 
 # 主函数
