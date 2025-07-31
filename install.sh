@@ -483,7 +483,14 @@ test_ports() {
 
 # 显示配置信息
 show_info() {
-    local server_ip=$(curl -s --connect-timeout 10 http://ipv4.icanhazip.com 2>/dev/null || curl -s --connect-timeout 10 http://ipinfo.io/ip 2>/dev/null || echo "获取IP失败")
+    local server_ip=$(
+        (
+            curl -s --connect-timeout 5 http://ipv4.icanhazip.com & 
+            curl -s --connect-timeout 5 http://ipinfo.io/ip & 
+            wait
+        ) | head -n 1
+    )
+    server_ip=${server_ip:-"获取IP失败"}
     
     echo
     echo "=========================================="
