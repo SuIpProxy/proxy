@@ -174,10 +174,49 @@ check_ports() {
     # 安装netstat（如果不存在）
     if ! command -v netstat >/dev/null 2>&1; then
         log_info "安装网络工具..."
+        
+        # 临时禁用set -e，避免因网络问题导致脚本退出
+        set +e
+        
+        # 更新包列表
         apt update >/dev/null 2>&1
+        update_result=$?
+        
+        if [ $update_result -ne 0 ]; then
+            log_warn "apt update 失败，尝试继续安装..."
+        fi
+        
+        # 安装net-tools
         apt install -y net-tools >/dev/null 2>&1
+        install_result=$?
+        
+        # 重新启用set -e
+        set -e
+        
+        if [ $install_result -ne 0 ]; then
+            log_warn "net-tools 安装失败，使用替代方法检查端口"
+            # 使用ss命令作为替代（通常默认安装）
+            if command -v ss >/dev/null 2>&1; then
+                if ss -tuln 2>/dev/null | grep -q ":$SOCKS5_PORT "; then
+                    log_error "端口 $SOCKS5_PORT 已被占用"
+                    exit 1
+                fi
+                
+                if ss -tuln 2>/dev/null | grep -q ":$HTTPS_PORT "; then
+                    log_error "端口 $HTTPS_PORT 已被占用"
+                    exit 1
+                fi
+                
+                log_info "端口检查通过（使用ss命令）"
+                return 0
+            else
+                log_warn "无法检查端口占用情况，继续安装"
+                return 0
+            fi
+        fi
     fi
     
+    # 使用netstat检查端口
     if netstat -tuln 2>/dev/null | grep -q ":$SOCKS5_PORT "; then
         log_error "端口 $SOCKS5_PORT 已被占用"
         exit 1
