@@ -234,21 +234,14 @@ check_ports() {
 # 更新系统并安装依赖
 install_dependencies() {
     log_info "更新系统并安装依赖包..."
-    
-    # 更新包列表
+
+    export DEBIAN_FRONTEND=noninteractive
+
+    local packages="wget gcc make libc6-dev curl net-tools ca-certificates"
+
     apt update
-    
-    # 基础依赖包
-    local packages="wget gcc make libc6-dev net-tools curl"
-    
-    # Debian 11可能需要额外的包
-    if [[ "$DEBIAN_VERSION" == "11"* ]]; then
-        packages="$packages build-essential"
-    fi
-    
-    # 安装依赖
-    apt install -y $packages
-    
+    apt -o Dpkg::Use-Pty=0 install -y --no-install-recommends $packages
+
     log_info "依赖包安装完成"
 }
 
