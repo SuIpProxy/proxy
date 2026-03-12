@@ -664,7 +664,6 @@ main() {
     parse_args "$@"
     check_root
     check_ports
-    install_dependencies
     install_3proxy
     create_config
     create_service
