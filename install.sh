@@ -3,8 +3,7 @@
 # 3proxy一键安装脚本 - Debian 11/12 兼容版本
 # 用法: ./install_3proxy.sh [socks5_port] [username] [password]
 
-set -ex
-trap 'echo "[ERROR] line=$LINENO exit=$?"' ERR
+set -e
 
 # 颜色定义
 RED='\033[0;31m'
@@ -664,6 +663,7 @@ main() {
     parse_args "$@"
     check_root
     check_ports
+    install_dependencies
     install_3proxy
     create_config
     create_service
